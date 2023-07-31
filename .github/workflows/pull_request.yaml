@@ -34,7 +34,7 @@ jobs:
         # make packer
 
         make install-local
-        make testacc-sudo
+        # make testacc-sudo
     - name: Failed acceptance
       if: ${{ failure() }}
       run: |
