@@ -53,7 +53,7 @@ jobs:
         docker build -f Dockerfile.release .
   release:
     name: release
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-latest
     if: github.event.release.tag_name
     env:
       TAGGED_VERSION: ${{github.event.release.tag_name}}
