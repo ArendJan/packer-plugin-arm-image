@@ -48,7 +48,7 @@ func (s *stepRegisterBinFmt) Run(_ context.Context, state multistep.StateBag) mu
 	registerstring_prefix = append(registerstring_prefix, []byte(mask)...)
 	registerstring_prefix = append(registerstring_prefix, ':')
 	registerstring := append(registerstring_prefix, ([]byte(qemu))...)
-	registerstring = append(registerstring, ":OC")
+	registerstring = append(registerstring, ':','O','C')
 	f, err := os.OpenFile("/proc/sys/fs/binfmt_misc/register", os.O_RDWR, 0)
 	if err != nil {
 		ui.Error(err.Error())
