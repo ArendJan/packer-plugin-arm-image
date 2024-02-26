@@ -41,6 +41,7 @@ type FlatConfig struct {
 	DisableEmbedded        *bool                 `mapstructure:"disable_embedded" cty:"disable_embedded" hcl:"disable_embedded"`
 	QemuArgs               []string              `mapstructure:"qemu_args" cty:"qemu_args" hcl:"qemu_args"`
 	QemuRequired           *bool                 `mapstructure:"qemu_required" cty:"qemu_required" hcl:"qemu_required"`
+	OverlayPath            *string               `mapstructure:"overlay_path" cty:"overlay_path" hcl:"overlay_path"`
 }
 
 // FlatMapstructure returns a new FlatConfig.
@@ -84,6 +85,7 @@ func (*FlatConfig) HCL2Spec() map[string]hcldec.Spec {
 		"disable_embedded":           &hcldec.AttrSpec{Name: "disable_embedded", Type: cty.Bool, Required: false},
 		"qemu_args":                  &hcldec.AttrSpec{Name: "qemu_args", Type: cty.List(cty.String), Required: false},
 		"qemu_required":              &hcldec.AttrSpec{Name: "qemu_required", Type: cty.Bool, Required: false},
+		"overlay_path":               &hcldec.AttrSpec{Name: "overlay_path", Type: cty.String, Required: false},
 	}
 	return s
 }

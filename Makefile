@@ -10,6 +10,7 @@ GORELEASER=go run github.com/goreleaser/goreleaser@v0.182.1
 
 build:
 	go generate ./...
+	cat pkg/builder/config.hcl2spec.go
 	go build -o ${BINARY} .
 
 test:

@@ -19,6 +19,11 @@ type stepMountImage struct {
 	MountPath        string
 	GeneratedDataKey string
 	mountpoints      []string
+
+	upperdir string
+	workdir  string
+	mergedDir string
+
 }
 
 func (s *stepMountImage) Run(ctx context.Context, state multistep.StateBag) multistep.StepAction {
@@ -42,10 +47,37 @@ func (s *stepMountImage) Run(ctx context.Context, state multistep.StateBag) mult
 			return multistep.ActionHalt
 		}
 	} else {
-		tempDir, err := ioutil.TempDir("", "armimg-")
+		tempDir, err := ioutil.TempDir("", "armimg-") // lower
 		if err != nil {
 			ui.Error(err.Error())
 			return multistep.ActionHalt
+		}
+		if config.OverlayPath != "" {
+			workdir := filepath.Join(tempDir, "work")
+			ui.Say(fmt.Sprintf("Using overlayfs with workdir: %s", workdir))
+			err := os.MkdirAll(workdir, os.ModePerm)
+			if err != nil {
+				ui.Error(err.Error())
+				return multistep.ActionHalt
+			}
+			mergedDir := filepath.Join(tempDir, "merged")
+			ui.Say(fmt.Sprintf("Using overlayfs with mergeddir: %s",tempDir))
+			err = os.MkdirAll(mergedDir, os.ModePerm)
+			if err != nil {
+				ui.Error(err.Error())
+				return multistep.ActionHalt
+			}
+			upperdir := filepath.Join(tempDir, "upper")
+			ui.Say(fmt.Sprintf("Using overlayfs with upperdir: %s", upperdir))
+			err = os.MkdirAll(upperdir, os.ModePerm)
+			if err != nil {
+				ui.Error(err.Error())
+				return multistep.ActionHalt
+			}
+			s.mergedDir = mergedDir
+			s.upperdir = upperdir
+			s.workdir = workdir
+			
 		}
 		s.MountPath = tempDir
 	}
@@ -83,6 +115,14 @@ func (s *stepMountImage) Run(ctx context.Context, state multistep.StateBag) mult
 	state.Put(s.ResultKey, s.MountPath)
 
 	updateGeneratedData(state, s.GeneratedDataKey, s.MountPath)
+	if config.OverlayPath != "" {
+		err := run(ctx, state, fmt.Sprintf(
+			"mount -t overlay overlay -o lowerdir=%s,upperdir=%s,workdir=%s %s",
+			s.MountPath, s.upperdir, s.workdir, s.mergedDir))
+		if err != nil {	
+			return multistep.ActionHalt
+		}
+	}
 
 	return multistep.ActionContinue
 }

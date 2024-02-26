@@ -81,5 +81,8 @@ type Config struct {
 	// Defaults to true if non-default `qemu_binary` or `qemu_args` are supplied.
 	QemuRequired bool `mapstructure:"qemu_required"`
 
+	// test with overlayfs
+	OverlayPath string `mapstructure:"overlay_path"`
+
 	ctx interpolate.Context
 }
