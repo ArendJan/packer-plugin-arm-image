@@ -22,8 +22,6 @@ type stepMountImage struct {
 
 	upperdir string
 	workdir  string
-	mergedDir string
-
 }
 
 func (s *stepMountImage) Run(ctx context.Context, state multistep.StateBag) multistep.StepAction {
@@ -52,35 +50,28 @@ func (s *stepMountImage) Run(ctx context.Context, state multistep.StateBag) mult
 			ui.Error(err.Error())
 			return multistep.ActionHalt
 		}
-		if config.OverlayPath != "" {
-			workdir := filepath.Join(tempDir, "work")
-			ui.Say(fmt.Sprintf("Using overlayfs with workdir: %s", workdir))
-			err := os.MkdirAll(workdir, os.ModePerm)
-			if err != nil {
-				ui.Error(err.Error())
-				return multistep.ActionHalt
-			}
-			mergedDir := filepath.Join(tempDir, "merged")
-			ui.Say(fmt.Sprintf("Using overlayfs with mergeddir: %s",tempDir))
-			err = os.MkdirAll(mergedDir, os.ModePerm)
-			if err != nil {
-				ui.Error(err.Error())
-				return multistep.ActionHalt
-			}
-			upperdir := filepath.Join(tempDir, "upper")
-			ui.Say(fmt.Sprintf("Using overlayfs with upperdir: %s", upperdir))
-			err = os.MkdirAll(upperdir, os.ModePerm)
-			if err != nil {
-				ui.Error(err.Error())
-				return multistep.ActionHalt
-			}
-			s.mergedDir = mergedDir
-			s.upperdir = upperdir
-			s.workdir = workdir
-			
-		}
 		s.MountPath = tempDir
 	}
+	if config.OverlayPath != "" {
+		workdir := s.MountPath + "work"
+		ui.Say(fmt.Sprintf("Using overlayfs with workdir: %s", workdir))
+		err := os.MkdirAll(workdir, os.ModePerm)
+		if err != nil {
+			ui.Error(err.Error())
+			return multistep.ActionHalt
+		}
+
+		upperdir := s.MountPath + "upper"
+		ui.Say(fmt.Sprintf("Using overlayfs with upperdir: %s", upperdir))
+		err = os.MkdirAll(upperdir, os.ModePerm)
+		if err != nil {
+			ui.Error(err.Error())
+			return multistep.ActionHalt
+		}
+		s.upperdir = upperdir
+		s.workdir = workdir
+	}
+
 	log.Println("mounting to", s.MountPath)
 
 	mountsAndPartitions := make([]struct{ part, mnt string }, len(partitions))
@@ -114,21 +105,44 @@ func (s *stepMountImage) Run(ctx context.Context, state multistep.StateBag) mult
 
 	state.Put(s.ResultKey, s.MountPath)
 
-	updateGeneratedData(state, s.GeneratedDataKey, s.MountPath)
 	if config.OverlayPath != "" {
+		ui.Say(fmt.Sprintf("Using overlayfs with upperdir: %s", s.upperdir))
+		// mounting on itself
 		err := run(ctx, state, fmt.Sprintf(
 			"mount -t overlay overlay -o lowerdir=%s,upperdir=%s,workdir=%s %s",
-			s.MountPath, s.upperdir, s.workdir, s.mergedDir))
-		if err != nil {	
+			s.MountPath, s.upperdir, s.workdir, s.MountPath))
+		if err != nil {
 			return multistep.ActionHalt
 		}
+		// s.MountPath = s.mergedDir
+		ui.Say(fmt.Sprintf("Using overlayfs with s.MountPath: %s", s.MountPath))
 	}
+	updateGeneratedData(state, s.GeneratedDataKey, s.MountPath)
 
 	return multistep.ActionContinue
 }
 
 func (s *stepMountImage) Cleanup(state multistep.StateBag) {
 	ui := state.Get("ui").(packer.Ui)
+	config := state.Get("config").(*Config)
+
+	if s.upperdir != "" {
+		// umount overlay
+		err := run(context.TODO(), state, "umount "+s.MountPath)
+		if err != nil {
+			ui.Error(err.Error())
+		}
+
+		// zip upperdir
+		zipPath := config.OverlayPath + ".zip"
+		// TODO: make something to copy overlays to other machines
+		ui.Say(fmt.Sprintf("Zipping upperdir using ` %s`", "(cd "+s.upperdir+" && zip -r - . ) > "+zipPath))
+		err = run(context.TODO(), state, "(cd "+s.upperdir+" && zip -r - . ) > "+zipPath)
+		// err = run(context.TODO(), state, "zip -r "+zipPath+" "+s.upperdir)
+		if err != nil {
+			ui.Error(err.Error())
+		}
+	}
 
 	if s.MountPath != "" {
 		for _, mntpnt := range reverse(s.mountpoints) {
