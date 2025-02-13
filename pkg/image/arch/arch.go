@@ -2,6 +2,7 @@ package arch
 
 import (
 	"runtime"
+	"fmt"
 )
 
 type KnownArchType string
@@ -35,5 +36,7 @@ func (arch KnownArchType) Valid() bool {
 }
 
 func (arch KnownArchType) IsNative() bool {
+	fmt.Println("arch: ", arch)
+	fmt.Println("runtime.GOARCH: ", runtime.GOARCH)
 	return string(arch) == runtime.GOARCH
 }
