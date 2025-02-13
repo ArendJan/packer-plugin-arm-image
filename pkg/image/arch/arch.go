@@ -3,6 +3,8 @@ package arch
 import (
 	"runtime"
 	"fmt"
+	"github.com/hashicorp/packer-plugin-sdk/packer"
+
 )
 
 type KnownArchType string
@@ -35,8 +37,8 @@ func (arch KnownArchType) Valid() bool {
 	return ok
 }
 
-func (arch KnownArchType) IsNative() bool {
-	fmt.Println("arch: ", arch)
-	fmt.Println("runtime.GOARCH: ", runtime.GOARCH)
+func (arch KnownArchType) IsNative(ui packer.Ui) bool {
+	ui.Say(fmt.Sprintf("arch: %s", arch))
+	ui.Say(	fmt.Sprintf("runtime.GOARCH:%s", runtime.GOARCH));
 	return string(arch) == runtime.GOARCH
 }

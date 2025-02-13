@@ -323,7 +323,7 @@ func (b *Builder) Run(ctx context.Context, ui packer.Ui, hook packer.Hook) (pack
 			&stepHandleResolvConf{ChrootKey: ChrootKey, Delete: b.config.ResolvConf == Delete})
 	}
 
-	if !b.config.ImageArch.IsNative() || b.config.QemuRequired {
+	if !b.config.ImageArch.IsNative(ui) || b.config.QemuRequired {
 		steps = append(steps,
 			&stepQemuUserStatic{ChrootKey: ChrootKey, PathToQemuInChrootKey: "qemuInChroot", Args: Args{Args: b.config.QemuArgs}},
 			&stepRegisterBinFmt{QemuPathKey: "qemuInChroot"},
